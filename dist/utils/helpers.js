@@ -84,31 +84,6 @@ export const startParamCheck = ({ account, genesisHash, getBestBlock, getItem, s
         if (!isFunction(getTransactionData)) {
             return err('getTransactionData must be a function.');
         }
-        if (network !== ENetworks.regtest) {
-            const expectedData = {
-                [ENetworks.mainnet]: {
-                    txid: 'f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16',
-                    data: {
-                        header: '01000000696aa63f0f22d9189c8536bb83b18737ae8336c25a67937f79957e5600000000982db9870a5e30d8f0b2a4ebccc5852b5a1e2413e9274c4947bfec6bdaa9b9d75bb76a49ffff001d2b719fdd',
-                        height: 170,
-                        transaction: '0100000001c997a5e56e104102fa209c6a852dd90660a20b2d9c352423edce25857fcd3704000000004847304402204e45e16932b8af514961a1d3a1a25fdf3f4f7732e9d624c6c61548ab5fb8cd410220181522ec8eca07de4860a4acdd12909d831cc56cbbac4622082221a8768d1d0901ffffffff0200ca9a3b00000000434104ae1a62fe09c5f51b13905f07f06b99a2f7159b2225f374cd378d71302fa28414e7aab37397f554a7df5f142c21c1b7303b8a0626f1baded5c72a704f7e6cd84cac00286bee0000000043410411db93e1dcdb8a016b49840f8c53bc1eb68a382e97b1482ecad7b148a6909a5cb2e0eaddfb84ccf9744464f82e160bfa9b8b64f9d4c03f999b8643f656b412a3ac00000000',
-                    },
-                },
-                [ENetworks.testnet]: {
-                    txid: '3757bc9ac72b4aba0babe9c5ee94373c6b8c675766b7c188af4c5e75068b78e3',
-                    data: {
-                        header: '0100000098fbe05200b867e000286338ee405f70ce4362f54769db2bc9d919db0000000078b787d3d8da61dce5a9fe4d4a9232e804021e439906e6fd52cf8f041f948b3d919d4a4dffff001d05774a61',
-                        height: 420,
-                        transaction: '0100000001d604a444f1b98c382cb0557c4972d2d0050e19a570f0c9592a8afd40e6eea450000000006a47304402205df0be0956dcd01ab514a6965faabe6a0202289ef9ca16a60fb17612ba23598902202c877276bb12e5c7e27f377e926bebe3afa6629c1785a732a26df4322a83eae7012102219f426bcf9151bb514807f6c1796361a6abf6e094a2e75da0ed91f587c07b37ffffffff02302f1526010000001976a9145c7f849d51b5708ec29d38fdce2e995da069e01588ac5dfd01000000000017a914c925e02c0560da5d9cd263481347b025b8f196f48700000000',
-                    },
-                },
-            };
-            const transactionData = yield getTransactionData(expectedData[network].txid);
-            if (JSON.stringify(transactionData) !==
-                JSON.stringify(expectedData[network].data)) {
-                return err('getTransactionData is not returning the expected data.');
-            }
-        }
         return ok('Params passed all checks.');
     }
     catch (e) {
