@@ -1,7 +1,7 @@
 {
-  "name": "@synonymdev/react-native-ldk",
+  "name": "react-native-ldk",
   "title": "React Native LDK",
-  "version": "0.0.53",
+  "version": "0.0.1",
   "description": "React Native wrapper for LDK",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -31,10 +31,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/synonymdev/react-native-ldk.git",
-    "baseUrl": "https://github.com/synonymdev/react-native-ldk"
+    "url": "git+https://github.com/damiandizeo/react-native-ldk.git",
+    "baseUrl": "https://github.com/damiandizeo/react-native-ldk"
   },
-  "author": "synonymdev",
+  "author": "damiandizeo",
   "license": "MIT",
   "licenseFilename": "LICENSE",
   "peerDependencies": {
@@ -62,7 +62,7 @@
   },
   "dependencies": {},
   "bugs": {
-    "url": "https://github.com/synonymdev/react-native-ldk/issues"
+    "url": "https://github.com/damiandizeo/react-native-ldk/issues"
   },
-  "homepage": "https://github.com/synonymdev/react-native-ldk#readme"
+  "homepage": "https://github.com/damiandizeo/react-native-ldk#readme"
 }
