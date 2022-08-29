@@ -1,7 +1,7 @@
 {
   "name": "react-native-ldk",
   "title": "React Native LDK",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "React Native wrapper for LDK",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -19,7 +19,7 @@
     "ldk"
   ],
   "scripts": {
-    
+
   },
   "repository": {
     "type": "git",

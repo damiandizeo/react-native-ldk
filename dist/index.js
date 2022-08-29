@@ -1,4 +1,4 @@
-import lm from './lightning-manager';
+import LDK from './ldk';
 export * from './utils/types';
-export default lm;
+export default LDK;
 //# sourceMappingURL=index.js.map
