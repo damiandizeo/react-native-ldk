@@ -12,7 +12,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
     override func free() {
         //TODO find out what this is for
     }
-    
+
     //Custom function to manage any unlikely missing info from the event object
     func handleEventError(_ event: Event) {
         LdkEventEmitter.shared.send(
@@ -20,7 +20,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
             body: "Error missing details for handle_event of type \(event.getValueType().debugDescription)"
         )
     }
-    
+
     func handle_event(event: Event) {
         // Follows ldk-sample event handling structure
         // https://github.com/lightningdevkit/ldk-sample/blob/c0a722430b8fbcb30310d64487a32aae839da3e8/src/main.rs#L600
@@ -29,7 +29,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
             guard let fundingGeneration = event.getValueAsFundingGenerationReady() else {
                 return handleEventError(event)
             }
-            
+
             LdkEventEmitter.shared.send(
                 withEvent: .channel_manager_funding_generation_ready,
                 body: [
@@ -44,11 +44,11 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
             guard let paymentReceived = event.getValueAsPaymentReceived() else {
                 return handleEventError(event)
             }
-            
+
             let paymentPreimage = paymentReceived.getPurpose().getValueAsInvoicePayment()?.getPayment_preimage()
             let paymentSecret = paymentReceived.getPurpose().getValueAsInvoicePayment()?.getPayment_secret()
             let spontaneousPayment = paymentReceived.getPurpose().getValueAsSpontaneousPayment()
-            
+
             LdkEventEmitter.shared.send(
                 withEvent: .channel_manager_payment_received,
                 body: [
@@ -64,7 +64,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
             guard let paymentSent = event.getValueAsPaymentSent() else {
                 return handleEventError(event)
             }
-            
+
             LdkEventEmitter.shared.send(
                 withEvent: .channel_manager_payment_sent,
                 body: [
@@ -95,7 +95,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
             guard let paymentPathSuccessful = event.getValueAsPaymentPathSuccessful() else {
                 return handleEventError(event)
             }
-            
+
             LdkEventEmitter.shared.send(
                 withEvent: .channel_manager_payment_path_successful,
                 body: [
@@ -109,7 +109,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
             guard let paymentPathFailed = event.getValueAsPaymentPathFailed() else {
                 return handleEventError(event)
             }
-            
+
             LdkEventEmitter.shared.send(
                 withEvent: .channel_manager_payment_path_failed,
                 body: [
@@ -126,7 +126,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
             guard let paymentFailed = event.getValueAsPaymentFailed() else {
                 return handleEventError(event)
             }
-            
+
             LdkEventEmitter.shared.send(
                 withEvent: .channel_manager_payment_failed,
                 body: [
@@ -142,7 +142,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
             guard let pendingHTLCsForwardable = event.getValueAsPendingHTLCsForwardable() else {
                 return handleEventError(event)
             }
-                        
+
             LdkEventEmitter.shared.send(
                 withEvent: .channel_manager_pending_htlcs_forwardable,
                 body: [
@@ -154,7 +154,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
             guard let spendableOutputs = event.getValueAsSpendableOutputs() else {
                 return handleEventError(event)
             }
-            
+
             LdkEventEmitter.shared.send(
                 withEvent: .channel_manager_spendable_outputs,
                 body: [
@@ -166,7 +166,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
             guard let channelClosed = event.getValueAsChannelClosed() else {
                 return handleEventError(event)
             }
-            
+
             LdkEventEmitter.shared.send(
                 withEvent: .channel_manager_channel_closed,
                 body: [
@@ -180,7 +180,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
             guard let discardFunding = event.getValueAsDiscardFunding() else {
                 return handleEventError(event)
             }
-            
+
             //Wallet should probably "lock" the UTXOs spent in funding transactions until the funding transaction either confirms, or this event is generated.
             LdkEventEmitter.shared.send(
                 withEvent: .channel_manager_discard_funding,
@@ -194,11 +194,11 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
             guard let paymentClaimed = event.getValueAsPaymentClaimed() else {
                 return handleEventError(event)
             }
-            
+
             let paymentPreimage = paymentClaimed.getPurpose().getValueAsInvoicePayment()?.getPayment_preimage()
             let paymentSecret = paymentClaimed.getPurpose().getValueAsInvoicePayment()?.getPayment_secret()
             let spontaneousPayment = paymentClaimed.getPurpose().getValueAsSpontaneousPayment()
-            
+
             LdkEventEmitter.shared.send(
                 withEvent: .channel_manager_payment_claimed,
                 body: [
@@ -209,24 +209,24 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
                     "spontaneous_payment_preimage": Data(spontaneousPayment ?? []).hexEncodedString(),
                 ]
             )
-            
+
         default:
             LdkEventEmitter.shared.send(withEvent: .native_log, body: "ERROR: unknown LdkChannelManagerPersister.handle_event type")
         }
     }
-    
+
     override func persist_manager(channel_manager: ChannelManager) -> Result_NoneErrorZ {
         LdkEventEmitter.shared.send(withEvent: .persist_manager, body: ["channel_manager": Data(channel_manager.write()).hexEncodedString()])
-        
+
         return Result_NoneErrorZ.ok()
     }
-    
+
     override func persist_graph(network_graph: NetworkGraph) -> Result_NoneErrorZ {
         LdkEventEmitter.shared.send(withEvent: .persist_graph, body: ["network_graph": Data(network_graph.write()).hexEncodedString()])
 
         return Result_NoneErrorZ.ok()
     }
-    
+
     override func persist_scorer(scorer: MultiThreadedLockableScore) -> Result_NoneErrorZ {
         //TODO
         print("TODO Swift persist scorer")

@@ -184,6 +184,15 @@ export declare type TSetTxConfirmedReq = {
 export declare type TSetTxUnconfirmedReq = {
     txId: string;
 };
+export declare type TOpenChannelStep1Req = {
+    pubkey: string;
+    channelValue: number;
+};
+export declare type TOpenChannelStep2Req = {
+    temporary_channel_id: string;
+    counterPartyNodeId: string;
+    txhex: string;
+};
 export declare type TCloseChannelReq = {
     channelId: string;
     counterPartyNodeId: string;

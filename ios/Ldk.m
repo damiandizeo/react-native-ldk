@@ -29,6 +29,17 @@ RCT_EXTERN_METHOD(initChannelManager:(NSString *)network
 RCT_EXTERN_METHOD(reset:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 
+//MARK: Channels methods
+RCT_EXTERN_METHOD(openChannelStep1:(NSArray *)pubkey
+                  channelValue:(NSInteger *)channelValue
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(openChannelStep2:(NSArray *)temporary_channel_id
+                  counterPartyNodeId:(NSInteger *)counterPartyNodeId
+                  txhex:(NSInteger *)txhex
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+
 //MARK: Update methods
 RCT_EXTERN_METHOD(updateFees:(NSInteger *)high
                   normal:(NSInteger *)normal

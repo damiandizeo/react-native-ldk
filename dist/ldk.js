@@ -181,6 +181,28 @@ class LDK {
             }
         });
     }
+    openChannelStep1({ pubkey, channelValue, }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield NativeLDK.openChannelStep1(pubkey, channelValue);
+                return ok(res);
+            }
+            catch (e) {
+                return err(e);
+            }
+        });
+    }
+    openChannelStep2({ temporary_channel_id, counterPartyNodeId, txhex, }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield NativeLDK.openChannelStep2(temporary_channel_id, counterPartyNodeId, txhex);
+                return ok(res);
+            }
+            catch (e) {
+                return err(e);
+            }
+        });
+    }
     closeChannel({ channelId, counterPartyNodeId, force, }) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
