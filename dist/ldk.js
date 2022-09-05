@@ -192,10 +192,10 @@ class LDK {
             }
         });
     }
-    openChannelStep2({ temporary_channel_id, counterPartyNodeId, txhex, }) {
+    openChannelStep2({ temporaryChannelId, counterPartyNodeId, txhex, }) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const res = yield NativeLDK.openChannelStep2(temporary_channel_id, counterPartyNodeId, txhex);
+                const res = yield NativeLDK.openChannelStep2(temporaryChannelId, counterPartyNodeId, txhex);
                 return ok(res);
             }
             catch (e) {

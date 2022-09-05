@@ -20,7 +20,7 @@ declare class LDK {
     setTxConfirmed({ header, txData, height, }: TSetTxConfirmedReq): Promise<Result<string>>;
     setTxUnconfirmed({ txId, }: TSetTxUnconfirmedReq): Promise<Result<string>>;
     openChannelStep1({ pubkey, channelValue, }: TOpenChannelStep1Req): Promise<Result<string>>;
-    openChannelStep2({ temporary_channel_id, counterPartyNodeId, txhex, }: TOpenChannelStep2Req): Promise<Result<string>>;
+    openChannelStep2({ temporaryChannelId, counterPartyNodeId, txhex, }: TOpenChannelStep2Req): Promise<Result<string>>;
     closeChannel({ channelId, counterPartyNodeId, force, }: TCloseChannelReq): Promise<Result<string>>;
     spendOutputs({ descriptorsSerialized, outputs, change_destination_script, feerate_sat_per_1000_weight, }: TSpendOutputsReq): Promise<Result<string>>;
     decode({ paymentRequest }: TPaymentReq): Promise<Result<TInvoice>>;

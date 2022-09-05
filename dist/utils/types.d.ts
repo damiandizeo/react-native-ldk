@@ -189,7 +189,7 @@ export declare type TOpenChannelStep1Req = {
     channelValue: number;
 };
 export declare type TOpenChannelStep2Req = {
-    temporary_channel_id: string;
+    temporaryChannelId: string;
     counterPartyNodeId: string;
     txhex: string;
 };

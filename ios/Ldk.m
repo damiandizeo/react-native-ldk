@@ -30,13 +30,13 @@ RCT_EXTERN_METHOD(reset:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 
 //MARK: Channels methods
-RCT_EXTERN_METHOD(openChannelStep1:(NSArray *)pubkey
+RCT_EXTERN_METHOD(openChannelStep1:(NSString *)pubkey
                   channelValue:(NSInteger *)channelValue
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(openChannelStep2:(NSArray *)temporary_channel_id
-                  counterPartyNodeId:(NSInteger *)counterPartyNodeId
-                  txhex:(NSInteger *)txhex
+RCT_EXTERN_METHOD(openChannelStep2:(NSString *)temporaryChannelId
+                  counterPartyNodeId:(NSString *)counterPartyNodeId
+                  txhex:(NSString *)txhex
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 

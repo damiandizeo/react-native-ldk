@@ -90,7 +90,7 @@ class Ldk: NSObject {
     lazy var persister = {LdkPersister()}()
     lazy var filter = {LdkFilter()}()
     lazy var channelManagerPersister = {LdkChannelManagerPersister()}()
-
+   
     //Config required to setup below objects
     var chainMonitor: ChainMonitor?
     var keysManager: KeysManager?
@@ -141,7 +141,7 @@ class Ldk: NSObject {
 
         return handleResolve(resolve, .keys_manager_init_success)
     }
-
+    
     @objc
     func initConfig(_ acceptInboundChannels: Bool, manuallyAcceptInboundChannels: Bool, announcedChannels: Bool, minChannelHandshakeDepth: NSInteger, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         guard userConfig == nil else {
@@ -154,7 +154,7 @@ class Ldk: NSObject {
 
         let channelConfig = ChannelConfig()
         userConfig!.set_channel_config(val: channelConfig)
-
+        
         let channelHandshakeConfig = ChannelHandshakeConfig()
         channelHandshakeConfig.set_minimum_depth(val: UInt32(minChannelHandshakeDepth))
         userConfig!.set_channel_handshake_config(val: channelHandshakeConfig)
@@ -171,7 +171,7 @@ class Ldk: NSObject {
         guard networkGraph == nil else {
             return handleReject(reject, .already_init)
         }
-
+        
         if serializedBackup == "" {
             networkGraph = NetworkGraph(genesis_hash: String(genesisHash).hexaBytes, logger: logger)
         } else {
@@ -182,7 +182,7 @@ class Ldk: NSObject {
                 return handleReject(reject, .network_graph_restore_failed)
             }
         }
-
+                
         return handleResolve(resolve, .network_graph_init_success)
     }
 
@@ -221,7 +221,7 @@ class Ldk: NSObject {
         default:
             return handleReject(reject, .invalid_network)
         }
-
+        
         var channelMonitorsBytes: Array<[UInt8]> = []
         for monitor in channelMonitorsSerialized {
             channelMonitorsBytes.append((monitor as! String).hexaBytes)
@@ -265,7 +265,7 @@ class Ldk: NSObject {
 
         //Scorer setup
         let scorer = MultiThreadedLockableScore(score: Score())
-
+        
         channelManagerConstructor!.chain_sync_completed(persister: channelManagerPersister, scorer: scorer)
         peerManager = channelManagerConstructor!.peerManager
 
@@ -274,7 +274,7 @@ class Ldk: NSObject {
 
         return handleResolve(resolve, .channel_manager_init_success)
     }
-
+    
     @objc
     func reset(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         channelManagerConstructor?.interrupt()
@@ -288,7 +288,7 @@ class Ldk: NSObject {
         peerHandler = nil
         ldkNetwork = nil
         ldkCurrency = nil
-
+       
         return handleResolve(resolve, .ldk_reset)
     }
 
@@ -305,7 +305,7 @@ class Ldk: NSObject {
         logger.setLevel(level: UInt32(level), active: active)
         return handleResolve(resolve, .log_level_updated)
     }
-
+    
     @objc
     func setLogFilePath(_ path: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         Logfile.log.setFilePath(String(path))
@@ -361,7 +361,7 @@ class Ldk: NSObject {
             let d = tx as! NSDictionary
             confirmTxData.append(C2Tuple_usizeTransactionZ.new(a: d["pos"] as! UInt, b: (d["transaction"] as! String).hexaBytes))
         }
-
+        
         channelManager.as_Confirm().transactions_confirmed(
             header: String(header).hexaBytes,
             txdata: confirmTxData,
@@ -391,12 +391,12 @@ class Ldk: NSObject {
 
         return handleResolve(resolve, .tx_set_unconfirmed)
     }
-
+    
     @objc
-    func openChannelStep1(_ pubkey: String, channelValue: NSNumber, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    func openChannelStep1(_ pubkey: String, channelValue: NSInteger, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         let peer_node_pubkey = pubkey.hexaBytes
         let userConfig = UserConfig.init()
-        if let create_channel_result = channelManager?.create_channel(their_network_key: peer_node_pubkey, channel_value_satoshis: UInt64(truncating: channelValue), push_msat: 0, user_channel_id: 42, override_config: userConfig) {
+        if let create_channel_result = channelManager?.create_channel(their_network_key: peer_node_pubkey, channel_value_satoshis: UInt64(channelValue), push_msat: 0, user_channel_id: 42, override_config: userConfig) {
             if create_channel_result.isOk() {
                 print("ReactNativeLDK: create_channel_result = true")
                 guard let channelResultValue = create_channel_result.getValue() else {
@@ -418,9 +418,9 @@ class Ldk: NSObject {
     }
 
     @objc
-    func openChannelStep2(_ temporary_channel_id: NSString, counterPartyNodeId: NSString, txhex: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    func openChannelStep2(_ temporaryChannelId: NSString, counterPartyNodeId: NSString, txhex: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
 
-        guard let funding_res = channelManager?.funding_transaction_generated(temporary_channel_id: String(temporary_channel_id).hexaBytes, counterparty_node_id: String(counterPartyNodeId).hexaBytes, funding_transaction: String(txhex).hexaBytes) else {
+        guard let funding_res = channelManager?.funding_transaction_generated(temporary_channel_id: String(temporaryChannelId).hexaBytes, counterparty_node_id: String(counterPartyNodeId).hexaBytes, funding_transaction: String(txhex).hexaBytes) else {
             print("ReactNativeLDK: funding_res = false")
             let error = NSError(domain: "openChannelStep2", code: 1, userInfo: nil)
             reject("openChannelStep2", "Failed",  error)
@@ -444,22 +444,22 @@ class Ldk: NSObject {
 
         resolve(true)
     }
-
+    
     @objc
     func closeChannel(_ channelId: NSString, counterPartyNodeId: NSString, force: Bool, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         guard let channelManager = channelManager else {
             return handleReject(reject, .init_channel_manager)
         }
-
+        
         let channel_id = String(channelId).hexaBytes
         let counterparty_node_id = String(counterPartyNodeId).hexaBytes
-
+                
         let res = force ? channelManager.force_close_broadcasting_latest_txn(channel_id: channel_id, counterparty_node_id: counterparty_node_id) : channelManager.close_channel(channel_id: channel_id, counterparty_node_id: counterparty_node_id)
         guard res.isOk() else {
             guard let error = res.getError() else {
                 return handleReject(reject, .channel_close_fail)
             }
-
+            
             switch error.getValueType() {
             case .APIMisuseError:
                 return handleReject(reject, .channel_close_fail, nil, error.getValueAsAPIMisuseError()?.getErr())
@@ -475,43 +475,43 @@ class Ldk: NSObject {
                 return handleReject(reject, .channel_close_fail)
             }
         }
-
+    
         return handleResolve(resolve, .close_channel_success)
     }
-
+    
     @objc
     func spendOutputs(_ descriptorsSerialized: NSArray, outputs: NSArray, changeDestinationScript: NSString, feeRate: NSInteger, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         guard let keysManager = keysManager else {
             return handleReject(reject, .init_keys_manager)
         }
-
+        
         var ldkDescriptors: Array<SpendableOutputDescriptor> = []
         for descriptor in descriptorsSerialized {
             let read = SpendableOutputDescriptor.read(ser: (descriptor as! String).hexaBytes)
-
+            
             guard read.isOk()  else {
                 return handleReject(reject, .spend_outputs_fail, nil, read.getError().debugDescription)
             }
             ldkDescriptors.append(read.getValue()!)
         }
-
+        
         var ldkOutputs: Array<TxOut> = []
         for output in outputs {
             let d = output as! NSDictionary
             ldkOutputs.append(TxOut(script_pubkey: (d["script_pubkey"] as! String).hexaBytes, value: d["value"] as! UInt64))
         }
-
+        
         let res = keysManager.spend_spendable_outputs(
             descriptors: ldkDescriptors,
             outputs: ldkOutputs,
             change_destination_script: String(changeDestinationScript).hexaBytes,
             feerate_sat_per_1000_weight: UInt32(feeRate)
         )
-
+        
         guard res.isOk() else {
             return handleReject(reject, .spend_outputs_fail)
         }
-
+        
         return resolve(Data(res.getValue()!).hexEncodedString())
     }
 
@@ -536,19 +536,19 @@ class Ldk: NSObject {
         guard let invoice = Invoice.from_str(s: String(paymentRequest)).getValue() else {
             return handleReject(reject, .decode_invoice_fail)
         }
-
+        
         let isZeroValueInvoice = invoice.amount_milli_satoshis().getValue() == nil
-
+        
         //If it's a zero invoice and we don't have an amount then don't proceed
         guard !(isZeroValueInvoice && amountSats == 0) else {
             return handleReject(reject, .invoice_payment_fail_must_specify_amount)
         }
-
+        
         //Amount was set but not allowed to set own amount
         guard !(amountSats > 0 && !isZeroValueInvoice) else {
             return handleReject(reject, .invoice_payment_fail_must_not_specify_amount)
         }
-
+        
         let res = isZeroValueInvoice ?
                     invoicePayer.pay_zero_value_invoice(invoice: invoice, amount_msats: UInt64(amountSats * 1000)) :
                     invoicePayer.pay_invoice(invoice: invoice)
@@ -601,7 +601,7 @@ class Ldk: NSObject {
         guard let ldkCurrency = ldkCurrency else {
             return handleReject(reject, .init_ldk_currency)
         }
-
+        
         let res = Bindings.swift_create_invoice_from_channelmanager(
             channelmanager: channelManager,
             keys_manager: keysManager.as_KeysInterface(),
@@ -610,7 +610,7 @@ class Ldk: NSObject {
             description: String(description),
             invoice_expiry_delta_secs: UInt32(expiryDelta)
         )
-
+        
         if res.isOk() {
             guard let invoice = res.getValue() else {
                 return handleReject(reject, .invoice_create_failed)
@@ -642,9 +642,9 @@ class Ldk: NSObject {
         guard let channelManager = channelManager else {
             return handleReject(reject, .init_channel_manager)
         }
-
+        
         channelManager.claim_funds(payment_preimage: String(paymentPreimage).hexaBytes)
-
+        
         return handleResolve(resolve, .claim_funds_success)
     }
 
