@@ -34,6 +34,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
                 withEvent: .channel_manager_funding_generation_ready,
                 body: [
                     "temp_channel_id": Data(fundingGeneration.getTemporary_channel_id()).hexEncodedString(),
+                    "counterparty_node_id": Data(fundingGeneration.getCounterparty_node_id()).hexEncodedString(),
                     "output_script": Data(fundingGeneration.getOutput_script()).hexEncodedString(),
                     "user_channel_id": fundingGeneration.getUser_channel_id(),
                     "value_satoshis": fundingGeneration.getChannel_value_satoshis(),
