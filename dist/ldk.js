@@ -282,11 +282,52 @@ class LDK {
     }
     pay({ paymentRequest, amountSats, }) {
         return __awaiter(this, void 0, void 0, function* () {
+            const channelsRes = yield this.listUsableChannels();
+            if (channelsRes.isOk() && channelsRes.value.length === 0) {
+                return err('No usable channels found');
+            }
             try {
                 const res = yield NativeLDK.pay(paymentRequest, amountSats || 0);
                 return ok(res);
             }
             catch (e) {
+                let resultError = err(e);
+                if (resultError.code === 'invoice_payment_fail_routing') {
+                    const decodedRes = yield this.decode({ paymentRequest });
+                    if (decodedRes.isErr()) {
+                        return err(e);
+                    }
+                    const { route_hints, recover_payee_pub_key, amount_satoshis } = decodedRes.value;
+                    let useFullMessage = `${resultError.error.message}.`;
+                    if (route_hints.length === 0) {
+                        useFullMessage = `${useFullMessage} No route hints found in payment request.`;
+                    }
+                    const graphRes = yield this.networkGraphListNodes();
+                    if (graphRes.isOk()) {
+                        let nodeInNetworkGraph = false;
+                        graphRes.value.forEach((node) => {
+                            if (node === recover_payee_pub_key) {
+                                nodeInNetworkGraph = true;
+                            }
+                        });
+                        if (!nodeInNetworkGraph) {
+                            useFullMessage = `${useFullMessage} Node not found in network graph.`;
+                        }
+                    }
+                    if (channelsRes.isOk()) {
+                        let highestOutgoing = 0;
+                        channelsRes.value.forEach(({ outbound_capacity_sat }) => {
+                            if (outbound_capacity_sat > highestOutgoing) {
+                                highestOutgoing = outbound_capacity_sat;
+                            }
+                        });
+                        let amountToSendSats = amountSats || amount_satoshis || 0;
+                        if (amountToSendSats > highestOutgoing) {
+                            useFullMessage = `${useFullMessage} Not enough outgoing capacity.`;
+                        }
+                    }
+                    return err(useFullMessage);
+                }
                 return err(e);
             }
         });
@@ -343,6 +384,94 @@ class LDK {
             try {
                 const res = yield NativeLDK.listUsableChannels();
                 return ok(res);
+            }
+            catch (e) {
+                return err(e);
+            }
+        });
+    }
+    networkGraphListNodes() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield NativeLDK.networkGraphListNodes();
+                return ok(res);
+            }
+            catch (e) {
+                return err(e);
+            }
+        });
+    }
+    networkGraphNode(nodeId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield NativeLDK.networkGraphNode(nodeId);
+                return ok(Object.assign(Object.assign({}, res), { nodeId }));
+            }
+            catch (e) {
+                return err(e);
+            }
+        });
+    }
+    completeGraphNodes() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield this.networkGraphListNodes();
+                let nodes = [];
+                if (res.isErr()) {
+                    return err(res.error);
+                }
+                for (let index = 0; index < res.value.length; index++) {
+                    const nodeRes = yield this.networkGraphNode(res.value[index]);
+                    if (nodeRes.isErr()) {
+                        return err(nodeRes.error);
+                    }
+                    nodes.push(nodeRes.value);
+                }
+                return ok(nodes);
+            }
+            catch (e) {
+                return err(e);
+            }
+        });
+    }
+    networkGraphListChannels() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield NativeLDK.networkGraphListChannels();
+                return ok(res);
+            }
+            catch (e) {
+                return err(e);
+            }
+        });
+    }
+    networkGraphChannel(shortChannelId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield NativeLDK.networkGraphChannel(shortChannelId);
+                return ok(Object.assign(Object.assign({}, res), { shortChannelId }));
+            }
+            catch (e) {
+                return err(e);
+            }
+        });
+    }
+    completeGraphChannels() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield this.networkGraphListChannels();
+                let channels = [];
+                if (res.isErr()) {
+                    return err(res.error);
+                }
+                for (let index = 0; index < res.value.length; index++) {
+                    const channelRes = yield this.networkGraphChannel(res.value[index]);
+                    if (channelRes.isErr()) {
+                        return err(channelRes.error);
+                    }
+                    channels.push(channelRes.value);
+                }
+                return ok(channels);
             }
             catch (e) {
                 return err(e);

@@ -7,7 +7,8 @@ export declare class Ok<T> {
 }
 export declare class Err<T> {
     readonly error: Error;
-    constructor(error: Error);
+    readonly code: string;
+    constructor(error: Error, code?: string);
     isOk(): this is Ok<T>;
     isErr(): this is Err<T>;
 }

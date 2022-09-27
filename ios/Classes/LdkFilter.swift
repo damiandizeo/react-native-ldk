@@ -4,7 +4,6 @@
 //
 //  Created by Jason van den Berg on 2022/05/10.
 //
-
 import Foundation
 import LightningDevKit
 
@@ -29,7 +28,7 @@ class LdkFilter: Filter {
             body: [
                 "block_hash": Data(output.get_block_hash()).hexEncodedString(),
                 "index": output.get_outpoint()!.get_index(),
-                "script_pubkey": Data(output.get_script_pubkey()).hexEncodedString(),                
+                "script_pubkey": Data(output.get_script_pubkey()).hexEncodedString(),
             ]
         )
         

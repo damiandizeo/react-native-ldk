@@ -1,6 +1,6 @@
 import { EmitterSubscription } from 'react-native';
 import { Result } from './utils/result';
-import { EEventTypes, ELdkLogLevels, TAddPeerReq, TChannel, TInvoice, TFeeUpdateReq, TInitChannelManagerReq, TInitConfig, TPaymentReq, TSyncTipReq, TCreatePaymentReq, TSetTxConfirmedReq, TSetTxUnconfirmedReq, TInitNetworkGraphReq, TOpenChannelStep1Req, TOpenChannelStep2Req, TAcceptInboundChannel, TCloseChannelReq, TSpendOutputsReq } from './utils/types';
+import { EEventTypes, ELdkLogLevels, TAddPeerReq, TChannel, TInvoice, TFeeUpdateReq, TInitChannelManagerReq, TInitConfig, TPaymentReq, TSyncTipReq, TCreatePaymentReq, TSetTxConfirmedReq, TSetTxUnconfirmedReq, TInitNetworkGraphReq, TOpenChannelStep1Req, TOpenChannelStep2Req, TAcceptInboundChannel, TCloseChannelReq, TSpendOutputsReq, TNetworkGraphChannelInfo, TNetworkGraphNodeInfo } from './utils/types';
 declare class LDK {
     private readonly logListeners;
     private readonly ldkEvent;
@@ -38,6 +38,12 @@ declare class LDK {
     listPeers(): Promise<Result<string[]>>;
     listChannels(): Promise<Result<TChannel[]>>;
     listUsableChannels(): Promise<Result<TChannel[]>>;
+    networkGraphListNodes(): Promise<Result<string[]>>;
+    networkGraphNode(nodeId: string): Promise<Result<TNetworkGraphNodeInfo>>;
+    completeGraphNodes(): Promise<Result<TNetworkGraphNodeInfo[]>>;
+    networkGraphListChannels(): Promise<Result<string[]>>;
+    networkGraphChannel(shortChannelId: string): Promise<Result<TNetworkGraphChannelInfo>>;
+    completeGraphChannels(): Promise<Result<TNetworkGraphChannelInfo[]>>;
 }
 declare const _default: LDK;
 export default _default;
