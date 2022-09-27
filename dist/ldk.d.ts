@@ -1,6 +1,6 @@
 import { EmitterSubscription } from 'react-native';
 import { Result } from './utils/result';
-import { EEventTypes, ELdkLogLevels, TAddPeerReq, TChannel, TInvoice, TFeeUpdateReq, TInitChannelManagerReq, TInitConfig, TPaymentReq, TSyncTipReq, TCreatePaymentReq, TSetTxConfirmedReq, TSetTxUnconfirmedReq, TInitNetworkGraphReq, TOpenChannelStep1Req, TOpenChannelStep2Req, TCloseChannelReq, TSpendOutputsReq } from './utils/types';
+import { EEventTypes, ELdkLogLevels, TAddPeerReq, TChannel, TInvoice, TFeeUpdateReq, TInitChannelManagerReq, TInitConfig, TPaymentReq, TSyncTipReq, TCreatePaymentReq, TSetTxConfirmedReq, TSetTxUnconfirmedReq, TInitNetworkGraphReq, TOpenChannelStep1Req, TOpenChannelStep2Req, TAcceptInboundChannel, TCloseChannelReq, TSpendOutputsReq } from './utils/types';
 declare class LDK {
     private readonly logListeners;
     private readonly ldkEvent;
@@ -21,6 +21,7 @@ declare class LDK {
     setTxUnconfirmed({ txId, }: TSetTxUnconfirmedReq): Promise<Result<string>>;
     openChannelStep1({ pubkey, channelValue, }: TOpenChannelStep1Req): Promise<Result<string>>;
     openChannelStep2({ temporaryChannelId, counterPartyNodeId, txhex, }: TOpenChannelStep2Req): Promise<Result<string>>;
+    acceptInboundChannel({ temporaryChannelId, counterPartyNodeId, turboChannels }: TAcceptInboundChannel): Promise<Result<string>>;
     closeChannel({ channelId, counterPartyNodeId, force, }: TCloseChannelReq): Promise<Result<string>>;
     spendOutputs({ descriptorsSerialized, outputs, change_destination_script, feerate_sat_per_1000_weight, }: TSpendOutputsReq): Promise<Result<string>>;
     decode({ paymentRequest }: TPaymentReq): Promise<Result<TInvoice>>;

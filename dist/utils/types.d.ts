@@ -193,6 +193,11 @@ export declare type TOpenChannelStep2Req = {
     counterPartyNodeId: string;
     txhex: string;
 };
+export declare type TAcceptInboundChannel = {
+    temporaryChannelId: string;
+    counterPartyNodeId: string;
+    turboChannels: boolean;
+};
 export declare type TCloseChannelReq = {
     channelId: string;
     counterPartyNodeId: string;

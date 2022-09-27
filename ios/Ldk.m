@@ -39,6 +39,12 @@ RCT_EXTERN_METHOD(openChannelStep2:(NSString *)temporaryChannelId
                   txhex:(NSString *)txhex
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(acceptInboundChannel:(NSString *)temporaryChannelId
+                  counterPartyNodeId:(NSString *)counterPartyNodeId
+                  userChannelId:(NSInteger *)userChannelId
+                  turboChannels:(BOOL *)turboChannels
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
 
 //MARK: Update methods
 RCT_EXTERN_METHOD(updateFees:(NSInteger *)high

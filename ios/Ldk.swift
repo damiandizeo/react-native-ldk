@@ -446,6 +446,22 @@ class Ldk: NSObject {
     }
     
     @objc
+    func acceptInboundChannel(_ temporaryChannelId: NSString, counterPartyNodeId: NSString, turboChannels: Bool, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+
+        guard let channelManager = channelManager else {
+            return handleReject(reject, .init_channel_manager)
+        }
+        
+        if turboChannels == true {
+            channelManager.accept_inbound_channel_from_trusted_peer_0conf(temporary_channel_id: String(temporaryChannelId).hexaBytes, counterparty_node_id: String(temporaryChannelId).hexaBytes, user_channel_id: 42)
+        } else {
+            channelManager.accept_inbound_channel(temporary_channel_id: String(temporaryChannelId).hexaBytes, counterparty_node_id: String(temporaryChannelId).hexaBytes, user_channel_id: 42)
+        }
+
+        resolve(true)
+    }
+    
+    @objc
     func closeChannel(_ channelId: NSString, counterPartyNodeId: NSString, force: Bool, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         guard let channelManager = channelManager else {
             return handleReject(reject, .init_channel_manager)

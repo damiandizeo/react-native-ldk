@@ -203,6 +203,17 @@ class LDK {
             }
         });
     }
+    acceptInboundChannel({ temporaryChannelId, counterPartyNodeId, turboChannels }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield NativeLDK.acceptInboundChannel(temporaryChannelId, counterPartyNodeId, turboChannels);
+                return ok(res);
+            }
+            catch (e) {
+                return err(e);
+            }
+        });
+    }
     closeChannel({ channelId, counterPartyNodeId, force, }) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
