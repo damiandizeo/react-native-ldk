@@ -4,6 +4,12 @@
 @interface RCT_EXTERN_MODULE(Ldk, NSObject)
 
 //MARK: Startup methods
+RCT_EXTERN_METHOD(setAccountStoragePath:(NSString *)storagePath
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(setLogFilePath:(NSString *)path
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(initChainMonitor:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(initKeysManager:(NSString *)seed
@@ -16,34 +22,14 @@ RCT_EXTERN_METHOD(initConfig:(BOOL *)acceptInboundChannels
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(initNetworkGraph:(NSString *)genesisHash
-                  serializedBackup:(NSString *)serializedBackup
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(initChannelManager:(NSString *)network
-                  channelManagerSerialized:(NSString *)channelManagerSerialized
-                  channelMonitorsSerialized:(NSArray *)channelMonitorsSerialized
                   blockHash:(NSString *)blockHash
                   blockHeight:(NSInteger *)blockHeight
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(reset:(RCTPromiseResolveBlock)resolve
-                  reject:(RCTPromiseRejectBlock)reject)
-
-//MARK: Channels methods
-RCT_EXTERN_METHOD(openChannelStep1:(NSString *)pubkey
-                  channelValue:(NSInteger *)channelValue
-                  resolve:(RCTPromiseResolveBlock)resolve
-                  reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(openChannelStep2:(NSString *)temporaryChannelId
-                  counterPartyNodeId:(NSString *)counterPartyNodeId
-                  txhex:(NSString *)txhex
-                  resolve:(RCTPromiseResolveBlock)resolve
-                  reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(acceptInboundChannel:(NSString *)temporaryChannelId
-                  counterPartyNodeId:(NSString *)counterPartyNodeId
-                  userChannelId:(NSInteger *)userChannelId
-                  turboChannels:(BOOL *)turboChannels
-                  resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 
 //MARK: Update methods
@@ -54,9 +40,6 @@ RCT_EXTERN_METHOD(updateFees:(NSInteger *)high
                   reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(setLogLevel:(NSInteger *)high
                   active:(BOOL *)active
-                  resolve:(RCTPromiseResolveBlock)resolve
-                  reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(setLogFilePath:(NSString *)path
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(syncToTip:(NSString *)header
@@ -75,11 +58,6 @@ RCT_EXTERN_METHOD(setTxConfirmed:(NSString *)header
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(setTxUnconfirmed:(NSString *)txId
-                  resolve:(RCTPromiseResolveBlock)resolve
-                  reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(closeChannel:(NSString *)channelId
-                  counterPartyNodeId:(NSString *)counterPartyNodeId
-                  force:(BOOL *)force
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(spendOutputs:(NSArray *)descriptorsSerialized
@@ -127,6 +105,28 @@ RCT_EXTERN_METHOD(createPaymentRequest:(NSInteger *)amountSats
 RCT_EXTERN_METHOD(processPendingHtlcForwards:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(claimFunds:(NSString *)paymentPreimage
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+
+//MARK: Channels methods
+RCT_EXTERN_METHOD(openChannelStep1:(NSString *)pubkey
+                  channelValue:(NSInteger *)channelValue
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(openChannelStep2:(NSString *)temporaryChannelId
+                  counterPartyNodeId:(NSString *)counterPartyNodeId
+                  txhex:(NSString *)txhex
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(acceptInboundChannel:(NSString *)temporaryChannelId
+                  counterPartyNodeId:(NSString *)counterPartyNodeId
+                  userChannelId:(NSInteger *)userChannelId
+                  turboChannels:(BOOL *)turboChannels
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(closeChannel:(NSString *)channelId
+                  counterPartyNodeId:(NSString *)counterPartyNodeId
+                  force:(BOOL *)force
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 @end

@@ -1,16 +1,17 @@
 import { EmitterSubscription } from 'react-native';
 import { Result } from './utils/result';
-import { EEventTypes, ELdkLogLevels, TAddPeerReq, TChannel, TInvoice, TFeeUpdateReq, TInitChannelManagerReq, TInitConfig, TPaymentReq, TSyncTipReq, TCreatePaymentReq, TSetTxConfirmedReq, TSetTxUnconfirmedReq, TInitNetworkGraphReq, TOpenChannelStep1Req, TOpenChannelStep2Req, TAcceptInboundChannel, TCloseChannelReq, TSpendOutputsReq, TNetworkGraphChannelInfo, TNetworkGraphNodeInfo } from './utils/types';
+import { EEventTypes, ELdkLogLevels, TAddPeerReq, TChannel, TInvoice, TFeeUpdateReq, TInitChannelManagerReq, TInitConfig, TPaymentReq, TSyncTipReq, TCreatePaymentReq, TSetTxConfirmedReq, TSetTxUnconfirmedReq, TInitNetworkGraphReq, TOpenChannelStep1Req, TOpenChannelStep2Req, TAcceptInboundChannel, TCloseChannelReq, TSpendOutputsReq, TNetworkGraphChannelInfo, TNetworkGraphNodeInfo, TFileReadRes, TFileReadReq, TFileWriteReq } from './utils/types';
 declare class LDK {
     private readonly logListeners;
     private readonly ldkEvent;
     constructor();
+    setAccountStoragePath(path: string): Promise<Result<string>>;
     initChainMonitor(): Promise<Result<string>>;
     initKeysManager(seed: string): Promise<Result<string>>;
     loadChannelMonitors(channelMonitors: string[]): Promise<Result<string>>;
-    initNetworkGraph({ serializedBackup, genesisHash, }: TInitNetworkGraphReq): Promise<Result<string>>;
+    initNetworkGraph({ genesisHash, }: TInitNetworkGraphReq): Promise<Result<string>>;
     initConfig({ acceptInboundChannels, manuallyAcceptInboundChannels, announcedChannels, minChannelHandshakeDepth, }: TInitConfig): Promise<Result<string>>;
-    initChannelManager({ network, channelManagerSerialized, channelMonitorsSerialized, bestBlock, }: TInitChannelManagerReq): Promise<Result<string>>;
+    initChannelManager({ network, bestBlock, }: TInitChannelManagerReq): Promise<Result<string>>;
     reset(): Promise<Result<string>>;
     setLogLevel(level: ELdkLogLevels, active: boolean): Promise<Result<string>>;
     setLogFilePath(path: string): Promise<Result<string>>;
@@ -44,6 +45,8 @@ declare class LDK {
     networkGraphListChannels(): Promise<Result<string[]>>;
     networkGraphChannel(shortChannelId: string): Promise<Result<TNetworkGraphChannelInfo>>;
     completeGraphChannels(): Promise<Result<TNetworkGraphChannelInfo[]>>;
+    writeToFile({ fileName, path, content, format, }: TFileWriteReq): Promise<Result<boolean>>;
+    readFromFile({ fileName, format, path, }: TFileReadReq): Promise<Result<TFileReadRes>>;
 }
 declare const _default: LDK;
 export default _default;

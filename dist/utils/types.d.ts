@@ -9,10 +9,7 @@ export declare enum EEventTypes {
     register_tx = "register_tx",
     register_output = "register_output",
     broadcast_transaction = "broadcast_transaction",
-    persist_manager = "persist_manager",
-    persist_new_channel = "persist_new_channel",
-    persist_graph = "persist_graph",
-    update_persisted_channel = "update_persisted_channel",
+    backup = "backup",
     channel_manager_funding_generation_ready = "channel_manager_funding_generation_ready",
     channel_manager_payment_received = "channel_manager_payment_received",
     channel_manager_payment_sent = "channel_manager_payment_sent",
@@ -24,12 +21,9 @@ export declare enum EEventTypes {
     channel_manager_spendable_outputs = "channel_manager_spendable_outputs",
     channel_manager_channel_closed = "channel_manager_channel_closed",
     channel_manager_discard_funding = "channel_manager_discard_funding",
-    channel_manager_payment_claimed = "channel_manager_payment_claimed"
+    channel_manager_payment_claimed = "channel_manager_payment_claimed",
+    emergency_force_close_channel = "emergency_force_close_channel"
 }
-export declare type TChannelBackupEvent = {
-    id: string;
-    data: string;
-};
 export declare type TRegisterTxEvent = {
     txid: string;
     script_pubkey: string;
@@ -38,12 +32,6 @@ export declare type TRegisterOutputEvent = {
     block_hash: string;
     index: number;
     script_pubkey: string;
-};
-export declare type TPersistManagerEvent = {
-    channel_manager: string;
-};
-export declare type TPersistGraphEvent = {
-    network_graph: string;
 };
 export declare type TBroadcastTransactionEvent = {
     tx: string;
@@ -73,6 +61,10 @@ export declare type TChannelManagerOpenChannelRequest = {
     push_sat: number;
     funding_satoshis: number;
     channel_type: string;
+};
+export declare type TEmergencyForceCloseChannel = {
+    channel_id: string;
+    counterparty_node_id: string;
 };
 declare type TPath = {
     pubkey: string;
@@ -251,16 +243,13 @@ export declare type TCreatePaymentReq = {
 };
 export declare type TInitChannelManagerReq = {
     network: ENetworks;
-    channelManagerSerialized: string;
-    channelMonitorsSerialized: string[];
     bestBlock: {
         hash: string;
         height: number;
     };
 };
 export declare type TInitNetworkGraphReq = {
-    serializedBackup?: string;
-    genesisHash?: string;
+    genesisHash: string;
 };
 export declare type TInitConfig = {
     acceptInboundChannels: boolean;
@@ -284,41 +273,66 @@ export declare type TTransactionData = {
     header: string;
     height: number;
     transaction: string;
+    vout: TVout[];
+};
+export declare type TFileWriteReq = {
+    fileName: string;
+    path?: string;
+    content: string;
+    format?: 'hex' | 'string';
+};
+export declare type TFileReadReq = {
+    fileName: string;
+    format?: 'hex' | 'string';
+    path?: string;
+};
+export declare type TFileReadRes = {
+    content: string;
+    timestamp: number;
 };
 export declare const DefaultTransactionDataShape: TTransactionData;
-export declare type TStorage = (key: string, ...args: Array<any>) => any;
 export declare type TGetTransactionData = (txid: string) => Promise<TTransactionData>;
 export declare type TGetBestBlock = () => Promise<THeader>;
-export declare enum ELdkStorage {
-    key = "LDKStorage"
+export declare enum ELdkFiles {
+    seed = "seed",
+    channel_manager = "channel_manager.bin",
+    channels = "channels",
+    peers = "peers.json",
+    watch_transactions = "watch_transactions.json",
+    watch_outputs = "watch_outputs.json",
+    confirmed_transactions = "confirmed_transactions.json",
+    confirmed_outputs = "confirmed_outputs.json",
+    broadcasted_transactions = "broadcasted_transactions.json"
 }
 export declare enum ELdkData {
-    channelManager = "channelManager",
-    channelData = "channelData",
+    channel_manager = "channel_manager",
+    channel_monitors = "channel_monitors",
     peers = "peers",
-    networkGraph = "networkGraph",
+    confirmed_transactions = "confirmed_transactions",
+    confirmed_outputs = "confirmed_outputs",
+    broadcasted_transactions = "broadcasted_transactions",
     timestamp = "timestamp"
 }
 export declare type TLdkData = {
-    [ELdkData.channelManager]: TLdkChannelManager;
-    [ELdkData.channelData]: TLdkChannelData;
+    [ELdkData.channel_manager]: string;
+    [ELdkData.channel_monitors]: {
+        [key: string]: string;
+    };
     [ELdkData.peers]: TLdkPeers;
-    [ELdkData.networkGraph]: TLdkNetworkGraph;
+    [ELdkData.confirmed_transactions]: TLdkConfirmedTransactions;
+    [ELdkData.confirmed_outputs]: TLdkConfirmedOutputs;
+    [ELdkData.broadcasted_transactions]: TLdkBroadcastedTransactions;
     [ELdkData.timestamp]: number;
 };
 export declare type TAccountBackup = {
     account: TAccount;
+    package_version: string;
     data: TLdkData;
 };
-export declare type TLdkChannelManager = string;
-export declare type TLdkChannelData = {
-    [id: string]: string;
-};
 export declare type TLdkPeers = TPeer[];
-export declare type TLdkNetworkGraph = string;
-export declare type TLdkStorage = {
-    [key: string]: TLdkData;
-};
+export declare type TLdkConfirmedTransactions = string[];
+export declare type TLdkConfirmedOutputs = string[];
+export declare type TLdkBroadcastedTransactions = string[];
 export declare const DefaultLdkDataShape: TLdkData;
 export declare type TAvailableNetworks = 'bitcoin' | 'bitcoinTestnet' | 'bitcoinRegtest';
 export declare type TAccount = {
@@ -329,12 +343,23 @@ export declare type TLdkStart = {
     account: TAccount;
     genesisHash: string;
     getBestBlock: TGetBestBlock;
-    getItem: TStorage;
-    setItem: TStorage;
     getTransactionData: TGetTransactionData;
+    getAddress: TGetAddress;
+    getScriptPubKeyHistory: TGetScriptPubKeyHistory;
+    broadcastTransaction: TBroadcastTransaction;
     network?: ENetworks;
+    feeRate?: number;
 };
-export declare type TLdkStorageKeys = {
-    [key in ELdkData]: string;
+export declare type TGetAddress = () => Promise<string>;
+export declare type TGetScriptPubKeyHistory = (address: string) => Promise<TGetScriptPubKeyHistoryResponse[]>;
+export declare type TGetScriptPubKeyHistoryResponse = {
+    height: number;
+    txid: string;
+};
+export declare type TBroadcastTransaction = (rawTx: string) => Promise<any>;
+export declare type TVout = {
+    hex: string;
+    n: number;
+    value: number;
 };
 export {};

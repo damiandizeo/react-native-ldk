@@ -24,6 +24,17 @@ class LDK {
         this.logListeners = [];
         this.ldkEvent = new NativeEventEmitter(NativeModules.LdkEventEmitter);
     }
+    setAccountStoragePath(path) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield NativeLDK.setAccountStoragePath(path);
+                return ok(res);
+            }
+            catch (e) {
+                return err(e);
+            }
+        });
+    }
     initChainMonitor() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -57,13 +68,10 @@ class LDK {
             }
         });
     }
-    initNetworkGraph({ serializedBackup, genesisHash, }) {
+    initNetworkGraph({ genesisHash, }) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!serializedBackup && !genesisHash) {
-                return err('Must provide serializedBackup or genesisHash as a backup');
-            }
             try {
-                const res = yield NativeLDK.initNetworkGraph(genesisHash || '', serializedBackup || '');
+                const res = yield NativeLDK.initNetworkGraph(genesisHash);
                 return ok(res);
             }
             catch (e) {
@@ -82,10 +90,10 @@ class LDK {
             }
         });
     }
-    initChannelManager({ network, channelManagerSerialized, channelMonitorsSerialized, bestBlock, }) {
+    initChannelManager({ network, bestBlock, }) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const res = yield NativeLDK.initChannelManager(network, channelManagerSerialized, channelMonitorsSerialized, bestBlock.hash, bestBlock.height);
+                const res = yield NativeLDK.initChannelManager(network, bestBlock.hash, bestBlock.height);
                 return ok(res);
             }
             catch (e) {
@@ -216,6 +224,16 @@ class LDK {
     }
     closeChannel({ channelId, counterPartyNodeId, force, }) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!force) {
+                const peersRes = yield this.listPeers();
+                if (peersRes.isErr()) {
+                    return err(peersRes.error);
+                }
+                const connectedNodeId = peersRes.value.find((nodeId) => nodeId === counterPartyNodeId);
+                if (!connectedNodeId) {
+                    return err('Cannot cooperatively close channel as peer is not connected.');
+                }
+            }
             try {
                 const res = yield NativeLDK.closeChannel(channelId, counterPartyNodeId, !!force);
                 return ok(res);
@@ -472,6 +490,28 @@ class LDK {
                     channels.push(channelRes.value);
                 }
                 return ok(channels);
+            }
+            catch (e) {
+                return err(e);
+            }
+        });
+    }
+    writeToFile({ fileName, path, content, format, }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield NativeLDK.writeToFile(fileName, path || '', content, format || 'string');
+                return ok(true);
+            }
+            catch (e) {
+                return err(e);
+            }
+        });
+    }
+    readFromFile({ fileName, format, path, }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const res = yield NativeLDK.readFromFile(fileName, path || '', format || 'string');
+                return ok(Object.assign(Object.assign({}, res), { timestamp: Math.round(res.timestamp) }));
             }
             catch (e) {
                 return err(e);

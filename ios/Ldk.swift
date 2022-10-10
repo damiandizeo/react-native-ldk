@@ -8,10 +8,7 @@ enum EventTypes: String, CaseIterable {
     case register_tx = "register_tx"
     case register_output = "register_output"
     case broadcast_transaction = "broadcast_transaction"
-    case persist_manager = "persist_manager"
-    case persist_new_channel = "persist_new_channel"
-    case persist_graph = "persist_graph"
-    case update_persisted_channel = "update_persisted_channel"
+    case backup = "backup"
     case channel_manager_funding_generation_ready = "channel_manager_funding_generation_ready"
     case channel_manager_payment_received = "channel_manager_payment_received"
     case channel_manager_payment_sent = "channel_manager_payment_sent"
@@ -24,12 +21,15 @@ enum EventTypes: String, CaseIterable {
     case channel_manager_channel_closed = "channel_manager_channel_closed"
     case channel_manager_discard_funding = "channel_manager_discard_funding"
     case channel_manager_payment_claimed = "channel_manager_payment_claimed"
-    //<<
+    case emergency_force_close_channel = "emergency_force_close_channel"
 }
 //*****************************************************************
+
 enum LdkErrors: String {
     case unknown_error = "unknown_error"
     case already_init = "already_init"
+    case create_storage_dir_fail = "create_storage_dir_fail"
+    case init_storage_path = "init_storage_path"
     case invalid_seed_hex = "invalid_seed_hex"
     case init_chain_monitor = "init_chain_monitor"
     case init_keys_manager = "init_keys_manager"
@@ -55,12 +55,15 @@ enum LdkErrors: String {
     case init_ldk_currency = "init_ldk_currency"
     case invoice_create_failed = "invoice_create_failed"
     case claim_funds_failed = "claim_funds_failed"
-    case network_graph_restore_failed = "network_graph_restore_failed"
     case channel_close_fail = "channel_close_fail"
     case spend_outputs_fail = "spend_outputs_fail"
+    case write_fail = "write_fail"
+    case read_fail = "read_fail"
+    case file_does_not_exist = "file_does_not_exist"
 }
 
 enum LdkCallbackResponses: String {
+    case storage_path_set = "storage_path_set"
     case fees_updated = "fees_updated"
     case log_level_updated = "log_level_updated"
     case log_path_updated = "log_path_updated"
@@ -78,6 +81,12 @@ enum LdkCallbackResponses: String {
     case claim_funds_success = "claim_funds_success"
     case ldk_reset = "ldk_reset"
     case close_channel_success = "close_channel_success"
+    case file_write_success = "file_write_success"
+}
+
+enum LdkFileNames: String {
+    case network_graph = "network_graph.bin"
+    case channel_manager = "channel_manager.bin"
 }
 
 @objc(Ldk)
@@ -89,9 +98,9 @@ class Ldk: NSObject {
     lazy var persister = {LdkPersister()}()
     lazy var filter = {LdkFilter()}()
     lazy var channelManagerPersister = {LdkChannelManagerPersister()}()
-    
+   
     //Config required to setup below objects
-    var chainMonitor: ChainMonitor?
+    var chainMonitor: ChainMonitor? //TODO lazy load chainMonitor
     var keysManager: KeysManager?
     var channelManager: ChannelManager?
     var userConfig: UserConfig?
@@ -102,8 +111,55 @@ class Ldk: NSObject {
     var invoicePayer: InvoicePayer?
     var ldkNetwork: LDKNetwork?
     var ldkCurrency: LDKCurrency?
+    
+    //Static to be accessed from other classes
+    static var accountStoragePath: URL?
+    static var channelStoragePath: URL?
 
     //MARK: Startup methods
+
+    @objc
+    func setAccountStoragePath(_ storagePath: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        guard Ldk.accountStoragePath == nil else {
+            return handleReject(reject, .already_init)
+        }
+        
+        let accountStoragePath = URL(fileURLWithPath: String(storagePath))
+        let channelStoragePath = accountStoragePath.appendingPathComponent("channels")
+
+        do {
+            if !FileManager().fileExists(atPath: accountStoragePath.path) {
+                try FileManager.default.createDirectory(atPath: accountStoragePath.path, withIntermediateDirectories: true, attributes: nil)
+            }
+            
+            if !FileManager().fileExists(atPath: channelStoragePath.path) {
+                try FileManager.default.createDirectory(atPath: channelStoragePath.path, withIntermediateDirectories: true, attributes: nil)
+            }
+        } catch {
+            return handleReject(reject, .create_storage_dir_fail, error)
+        }
+
+        Ldk.accountStoragePath = accountStoragePath
+        Ldk.channelStoragePath = channelStoragePath
+
+        return handleResolve(resolve, .storage_path_set)
+    }
+    
+    @objc
+    func setLogFilePath(_ path: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        let logFile = URL(fileURLWithPath: String(path))
+        
+        do {
+            if !FileManager().fileExists(atPath: logFile.deletingLastPathComponent().path) {
+                try FileManager.default.createDirectory(atPath: logFile.deletingLastPathComponent().path, withIntermediateDirectories: true, attributes: nil)
+            }
+        } catch {
+            return handleReject(reject, .create_storage_dir_fail)
+        }
+        
+        Logfile.log.setFilePath(logFile)
+        return handleResolve(resolve, .log_path_updated)
+    }
 
     @objc
     func initChainMonitor(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
@@ -127,7 +183,7 @@ class Ldk: NSObject {
         guard keysManager == nil else {
             return handleReject(reject, .already_init)
         }
-
+        
         let seconds = UInt64(NSDate().timeIntervalSince1970)
         let nanoSeconds = UInt32.init(truncating: NSNumber(value: seconds * 1000 * 1000))
         let seedBytes = String(seed).hexaBytes
@@ -160,34 +216,43 @@ class Ldk: NSObject {
         userConfig!.set_channel_handshake_config(val: channelHandshakeConfig)
 
         let channelHandshakeLimits = ChannelHandshakeLimits()
-        channelHandshakeLimits.set_force_announced_channel_preference(val: true)
+        channelHandshakeLimits.set_their_to_self_delay(val: 2016)
+        channelHandshakeLimits.set_force_announced_channel_preference(val: false)
+        channelHandshakeLimits.set_trust_own_funding_0conf(val: true)
         userConfig!.set_channel_handshake_limits(val: channelHandshakeLimits)
 
         return handleResolve(resolve, .config_init_success)
     }
 
     @objc
-    func initNetworkGraph(_ genesisHash: NSString, serializedBackup: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    func initNetworkGraph(_ genesisHash: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         guard networkGraph == nil else {
             return handleReject(reject, .already_init)
         }
         
-        if serializedBackup == "" {
-            networkGraph = NetworkGraph(genesis_hash: String(genesisHash).hexaBytes, logger: logger)
-        } else {
-            let read = NetworkGraph.read(ser: String(serializedBackup).hexaBytes, arg: logger)
+        guard let accountStoragePath = Ldk.accountStoragePath else {
+            return handleReject(reject, .init_storage_path)
+        }
+        
+        do {
+            let read = NetworkGraph.read(ser: [UInt8](try Data(contentsOf: accountStoragePath.appendingPathComponent(LdkFileNames.network_graph.rawValue).standardizedFileURL)), arg: logger)
             if read.isOk() {
                 networkGraph = read.getValue()
-            } else {
-                return handleReject(reject, .network_graph_restore_failed)
             }
+        } catch {
+            LdkEventEmitter.shared.send(withEvent: .native_log, body: "Failed to load cached network graph from disk. Will sync from scratch. \(error.localizedDescription)")
         }
-                        
+        
+        if networkGraph == nil {
+            LdkEventEmitter.shared.send(withEvent: .native_log, body: "Failed to load cached network graph from disk. Will sync from scratch.")
+            networkGraph = NetworkGraph(genesis_hash: String(genesisHash).hexaBytes, logger: logger)
+        }
+        
         return handleResolve(resolve, .network_graph_init_success)
     }
 
     @objc
-    func initChannelManager(_ network: NSString, channelManagerSerialized: NSString, channelMonitorsSerialized: NSArray, blockHash: NSString, blockHeight: NSInteger, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    func initChannelManager(_ network: NSString, blockHash: NSString, blockHeight: NSInteger, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         guard channelManager == nil else {
             return handleReject(reject, .already_init)
         }
@@ -208,6 +273,14 @@ class Ldk: NSObject {
             return handleReject(reject, .init_network_graph)
         }
 
+        guard let accountStoragePath = Ldk.accountStoragePath else {
+            return handleReject(reject, .init_storage_path)
+        }
+        
+        guard let channelStoragePath = Ldk.channelStoragePath else {
+            return handleReject(reject, .init_storage_path)
+        }
+        
         switch network {
         case "regtest":
             ldkNetwork = LDKNetwork_Regtest
@@ -222,14 +295,34 @@ class Ldk: NSObject {
             return handleReject(reject, .invalid_network)
         }
         
-        var channelMonitorsBytes: Array<[UInt8]> = []
-        for monitor in channelMonitorsSerialized {
-            channelMonitorsBytes.append((monitor as! String).hexaBytes)
-        }
-
+        let storedChannelManager = try? Data(contentsOf: accountStoragePath.appendingPathComponent(LdkFileNames.channel_manager.rawValue).standardizedFileURL)
+        
         do {
-            if channelManagerSerialized == "" {
+            if let channelManagerSerialized = storedChannelManager {
+                //Restoring node
+                LdkEventEmitter.shared.send(withEvent: .native_log, body: "Restoring node from disk")
+                var channelMonitorsSerialized: Array<[UInt8]> = []
+                let channelFiles = try! FileManager.default.contentsOfDirectory(at: channelStoragePath, includingPropertiesForKeys: nil)
+                for channelFile in channelFiles {
+                    LdkEventEmitter.shared.send(withEvent: .native_log, body: "Loading channel from file \(channelFile.lastPathComponent)")
+                    channelMonitorsSerialized.append([UInt8](try! Data(contentsOf: channelFile.standardizedFileURL)))
+                }
+                
+                channelManagerConstructor = try ChannelManagerConstructor(
+                    channel_manager_serialized: [UInt8](channelManagerSerialized),
+                    channel_monitors_serialized: channelMonitorsSerialized,
+                    keys_interface: keysManager.as_KeysInterface(),
+                    fee_estimator: feeEstimator,
+                    chain_monitor: chainMonitor,
+                    filter: filter,
+                    net_graph_serialized: networkGraph.write(),
+                    tx_broadcaster: broadcaster,
+                    logger: logger,
+                    enableP2PGossip: true
+                )
+            } else {
                 //New node
+                LdkEventEmitter.shared.send(withEvent: .native_log, body: "Creating new channel manager")
                 channelManagerConstructor = ChannelManagerConstructor(
                     network: ldkNetwork!,
                     config: userConfig,
@@ -243,22 +336,7 @@ class Ldk: NSObject {
                     logger: logger,
                     enableP2PGossip: true
                 )
-            } else {
-                //Restoring node
-                channelManagerConstructor = try ChannelManagerConstructor(
-                    channel_manager_serialized: String(channelManagerSerialized).hexaBytes,
-                    channel_monitors_serialized: channelMonitorsBytes,
-                    keys_interface: keysManager.as_KeysInterface(),
-                    fee_estimator: feeEstimator,
-                    chain_monitor: chainMonitor,
-                    filter: filter,
-                    net_graph_serialized: networkGraph.write(),
-                    tx_broadcaster: broadcaster,
-                    logger: logger,
-                    enableP2PGossip: true
-                )
             }
-            
         } catch {
             return handleReject(reject, .unknown_error, error)
         }
@@ -294,11 +372,14 @@ class Ldk: NSObject {
         peerHandler = nil
         ldkNetwork = nil
         ldkCurrency = nil
-       
+        Ldk.accountStoragePath = nil
+        Ldk.channelStoragePath = nil
+
         return handleResolve(resolve, .ldk_reset)
     }
 
     //MARK: Update methods
+
     @objc
     func updateFees(_ high: NSInteger, normal: NSInteger, low: NSInteger, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         feeEstimator.update(high: UInt32(high), normal: UInt32(normal), low: UInt32(low))
@@ -309,12 +390,6 @@ class Ldk: NSObject {
     func setLogLevel(_ level: NSInteger, active: Bool, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         logger.setLevel(level: UInt32(level), active: active)
         return handleResolve(resolve, .log_level_updated)
-    }
-    
-    @objc
-    func setLogFilePath(_ path: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-        Logfile.log.setFilePath(String(path))
-        return handleResolve(resolve, .log_path_updated)
     }
 
     @objc
@@ -337,6 +412,7 @@ class Ldk: NSObject {
     @objc
     func addPeer(_ address: NSString, port: NSInteger, pubKey: NSString, timeout: NSInteger, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         //timeout param not used. Only for android.
+
         //Sync ChannelMonitors and ChannelManager to chain tip
         guard let peerHandler = peerHandler else {
             return handleReject(reject, .init_peer_handler)
@@ -394,111 +470,6 @@ class Ldk: NSObject {
         chainMonitor.as_Confirm().transaction_unconfirmed(txid: String(txId).hexaBytes)
 
         return handleResolve(resolve, .tx_set_unconfirmed)
-    }
-    
-    @objc
-    func openChannelStep1(_ pubkey: String, channelValue: NSInteger, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-        let peer_node_pubkey = pubkey.hexaBytes
-        let userConfig = UserConfig.init()
-        if let create_channel_result = channelManager?.create_channel(their_network_key: peer_node_pubkey, channel_value_satoshis: UInt64(channelValue), push_msat: 0, user_channel_id: 42, override_config: userConfig) {
-            if create_channel_result.isOk() {
-                print("ReactNativeLDK: create_channel_result = true")
-                guard let channelResultValue = create_channel_result.getValue() else {
-                    // This should never happen
-                    let error = NSError(domain: "create_channel_result", code: 1, userInfo: nil)
-                    return reject("openChannelStep1", "create_channel_result",  error)
-                }
-                resolve(Data(channelResultValue).hexEncodedString())
-            } else {
-                print("ReactNativeLDK: create_channel_result = false")
-                let error = NSError(domain: "openChannelStep1", code: 1, userInfo: nil)
-                return reject("openChannelStep1", "create_channel_result is not ok",  error)
-            }
-        } else {
-            print("ReactNativeLDK: create_channel_result = false")
-            let error = NSError(domain: "openChannelStep1", code: 1, userInfo: nil)
-            reject("openChannelStep1", "Failed",  error)
-        }
-    }
-
-    @objc
-    func openChannelStep2(_ temporaryChannelId: NSString, counterPartyNodeId: NSString, txhex: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-
-        guard let funding_res = channelManager?.funding_transaction_generated(temporary_channel_id: String(temporaryChannelId).hexaBytes, counterparty_node_id: String(counterPartyNodeId).hexaBytes, funding_transaction: String(txhex).hexaBytes) else {
-            print("ReactNativeLDK: funding_res = false")
-            let error = NSError(domain: "openChannelStep2", code: 1, userInfo: nil)
-            reject("openChannelStep2", "Failed",  error)
-            return
-        }
-        // funding_transaction_generated should only generate an error if the
-        // transaction didn't meet the required format (or the counterparty already
-        // closed the channel on us):
-        if !funding_res.isOk()  {
-            print("ReactNativeLDK: funding_res = false")
-            let error = NSError(domain: "openChannelStep2", code: 1, userInfo: nil)
-            reject("openChannelStep2", "Failed",  error)
-            return
-        }
-
-        // At this point LDK will exchange the remaining channel open messages with
-        // the counterparty and, when appropriate, broadcast the funding transaction
-        // provided.
-        // Once it confirms, the channel will be open and available for use (indicated
-        // by its presence in `channel_manager.list_usable_channels()`).
-
-        resolve(true)
-    }
-    
-    @objc
-    func acceptInboundChannel(_ temporaryChannelId: NSString, counterPartyNodeId: NSString, turboChannels: Bool, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-
-        guard let channelManager = channelManager else {
-            return handleReject(reject, .init_channel_manager)
-        }
-        
-        if turboChannels == true {
-            channelManager.accept_inbound_channel_from_trusted_peer_0conf(temporary_channel_id: String(temporaryChannelId).hexaBytes, counterparty_node_id: String(temporaryChannelId).hexaBytes, user_channel_id: 42)
-        } else {
-            channelManager.accept_inbound_channel(temporary_channel_id: String(temporaryChannelId).hexaBytes, counterparty_node_id: String(temporaryChannelId).hexaBytes, user_channel_id: 42)
-        }
-
-        resolve(true)
-    }
-    
-    @objc
-    func closeChannel(_ channelId: NSString, counterPartyNodeId: NSString, force: Bool, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-        guard let channelManager = channelManager else {
-            return handleReject(reject, .init_channel_manager)
-        }
-        
-        let channel_id = String(channelId).hexaBytes
-        let counterparty_node_id = String(counterPartyNodeId).hexaBytes
-                
-        let res = force ?
-                    channelManager.force_close_broadcasting_latest_txn(channel_id: channel_id, counterparty_node_id: counterparty_node_id) :
-                    channelManager.close_channel(channel_id: channel_id, counterparty_node_id: counterparty_node_id)
-        guard res.isOk() else {
-            guard let error = res.getError() else {
-                return handleReject(reject, .channel_close_fail)
-            }
-            
-            switch error.getValueType() {
-            case .APIMisuseError:
-                return handleReject(reject, .channel_close_fail, nil, error.getValueAsAPIMisuseError()?.getErr())
-            case .ChannelUnavailable:
-                return handleReject(reject, .channel_close_fail, nil, error.getValueAsChannelUnavailable()?.getErr())
-            case .FeeRateTooHigh:
-                return handleReject(reject, .channel_close_fail, nil, error.getValueAsFeeRateTooHigh()?.getErr())
-            case .IncompatibleShutdownScript:
-                return handleReject(reject, .channel_close_fail, nil, Data(error.getValueAsIncompatibleShutdownScript()?.getScript().write() ?? []).hexEncodedString())
-            case .RouteError:
-                return handleReject(reject, .channel_close_fail, nil, error.getValueAsRouteError()?.getErr())
-            default:
-                return handleReject(reject, .channel_close_fail)
-            }
-        }
-    
-        return handleResolve(resolve, .close_channel_success)
     }
     
     @objc
@@ -751,6 +722,174 @@ class Ldk: NSObject {
         }
         
         return resolve(networkGraph.channel(short_channel_id: UInt64(shortChannelId as String)!).asJson)
+    }
+    
+    //MARK: Channels methods
+    @objc
+    func openChannelStep1(_ pubkey: String, channelValue: NSInteger, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        let peer_node_pubkey = pubkey.hexaBytes
+        let userConfig = UserConfig.init()
+        if let create_channel_result = channelManager?.create_channel(their_network_key: peer_node_pubkey, channel_value_satoshis: UInt64(channelValue), push_msat: 0, user_channel_id: 42, override_config: userConfig) {
+            if create_channel_result.isOk() {
+                print("ReactNativeLDK: create_channel_result = true")
+                guard let channelResultValue = create_channel_result.getValue() else {
+                    // This should never happen
+                    let error = NSError(domain: "create_channel_result", code: 1, userInfo: nil)
+                    return reject("openChannelStep1", "create_channel_result",  error)
+                }
+                resolve(Data(channelResultValue).hexEncodedString())
+            } else {
+                print("ReactNativeLDK: create_channel_result = false")
+                let error = NSError(domain: "openChannelStep1", code: 1, userInfo: nil)
+                return reject("openChannelStep1", "create_channel_result is not ok",  error)
+            }
+        } else {
+            print("ReactNativeLDK: create_channel_result = false")
+            let error = NSError(domain: "openChannelStep1", code: 1, userInfo: nil)
+            reject("openChannelStep1", "Failed",  error)
+        }
+    }
+
+    @objc
+    func openChannelStep2(_ temporaryChannelId: NSString, counterPartyNodeId: NSString, txhex: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+
+        guard let funding_res = channelManager?.funding_transaction_generated(temporary_channel_id: String(temporaryChannelId).hexaBytes, counterparty_node_id: String(counterPartyNodeId).hexaBytes, funding_transaction: String(txhex).hexaBytes) else {
+            print("ReactNativeLDK: funding_res = false")
+            let error = NSError(domain: "openChannelStep2", code: 1, userInfo: nil)
+            reject("openChannelStep2", "Failed",  error)
+            return
+        }
+        if !funding_res.isOk()  {
+            print("ReactNativeLDK: funding_res = false")
+            let error = NSError(domain: "openChannelStep2", code: 1, userInfo: nil)
+            reject("openChannelStep2", "Failed",  error)
+            return
+        }
+        
+        resolve(true)
+    }
+    
+    @objc
+    func acceptInboundChannel(_ temporaryChannelId: NSString, counterPartyNodeId: NSString, turboChannels: Bool, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+
+        guard let channelManager = channelManager else {
+            return handleReject(reject, .init_channel_manager)
+        }
+        
+        if turboChannels == true {
+            channelManager.accept_inbound_channel_from_trusted_peer_0conf(temporary_channel_id: String(temporaryChannelId).hexaBytes, counterparty_node_id: String(temporaryChannelId).hexaBytes, user_channel_id: 42)
+        } else {
+            channelManager.accept_inbound_channel(temporary_channel_id: String(temporaryChannelId).hexaBytes, counterparty_node_id: String(temporaryChannelId).hexaBytes, user_channel_id: 42)
+        }
+
+        resolve(true)
+    }
+    
+    @objc
+    func closeChannel(_ channelId: NSString, counterPartyNodeId: NSString, force: Bool, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        guard let channelManager = channelManager else {
+            return handleReject(reject, .init_channel_manager)
+        }
+        
+        let channel_id = String(channelId).hexaBytes
+        let counterparty_node_id = String(counterPartyNodeId).hexaBytes
+                
+        let res = force ?
+                    channelManager.force_close_broadcasting_latest_txn(channel_id: channel_id, counterparty_node_id: counterparty_node_id) :
+                    channelManager.close_channel(channel_id: channel_id, counterparty_node_id: counterparty_node_id)
+        guard res.isOk() else {
+            guard let error = res.getError() else {
+                return handleReject(reject, .channel_close_fail)
+            }
+            
+            switch error.getValueType() {
+            case .APIMisuseError:
+                return handleReject(reject, .channel_close_fail, nil, error.getValueAsAPIMisuseError()?.getErr())
+            case .ChannelUnavailable:
+                return handleReject(reject, .channel_close_fail, nil, "Channel unavailable for closing") //Crashes when returning error.getValueAsChannelUnavailable()?.getErr()
+            case .FeeRateTooHigh:
+                return handleReject(reject, .channel_close_fail, nil, error.getValueAsFeeRateTooHigh()?.getErr())
+            case .IncompatibleShutdownScript:
+                return handleReject(reject, .channel_close_fail, nil, Data(error.getValueAsIncompatibleShutdownScript()?.getScript().write() ?? []).hexEncodedString())
+            case .RouteError:
+                return handleReject(reject, .channel_close_fail, nil, error.getValueAsRouteError()?.getErr())
+            default:
+                return handleReject(reject, .channel_close_fail)
+            }
+        }
+    
+        return handleResolve(resolve, .close_channel_success)
+    }
+    
+    //MARK: Misc functions
+    @objc
+    func writeToFile(_ fileName: NSString, path: NSString, content: NSString, format: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        
+        let fileUrl: URL
+        
+        do {
+            if path != "" {
+                //Make sure custom path exists by creating if missing
+                let pathUrl = URL(fileURLWithPath: String(path), isDirectory: true)
+                
+                if !FileManager().fileExists(atPath: pathUrl.path) {
+                    try FileManager.default.createDirectory(atPath: pathUrl.path, withIntermediateDirectories: true, attributes: nil)
+                }
+                
+                fileUrl = URL(fileURLWithPath: String(path)).appendingPathComponent(String(fileName))
+            } else {
+                //Assume default directory if no path was set
+                guard let accountStoragePath = Ldk.accountStoragePath else {
+                    return handleReject(reject, .init_storage_path)
+                }
+                
+                fileUrl = accountStoragePath.appendingPathComponent(String(fileName))
+            }
+        
+            let fileContent = String(content)
+            if format == "hex" {
+                try Data(fileContent.hexaBytes).write(to: fileUrl)
+            } else {
+                try fileContent.data(using: .utf8)?.write(to: fileUrl)
+            }
+            
+            return handleResolve(resolve, .file_write_success)
+        } catch {
+            return handleReject(reject, .write_fail, error, "Failed to write content to file \(fileName)")
+        }
+    }
+        
+    @objc
+    func readFromFile(_ fileName: NSString, path: NSString, format: NSString, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        let fileUrl: URL
+        
+        if path != "" {
+            fileUrl = URL(fileURLWithPath: String(path)).appendingPathComponent(String(fileName))
+        } else {
+            //Assume default directory if no path was set
+            guard let accountStoragePath = Ldk.accountStoragePath else {
+                return handleReject(reject, .init_storage_path)
+            }
+            
+            fileUrl = accountStoragePath.appendingPathComponent(String(fileName))
+        }
+        
+        if !FileManager().fileExists(atPath: fileUrl.path) {
+            return handleReject(reject, .file_does_not_exist, nil, "Could not locate file at \(fileUrl.path)")
+        }
+        
+        do {
+            let attr = try FileManager.default.attributesOfItem(atPath: fileUrl.path)
+            let timestamp = ((attr[FileAttributeKey.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0).rounded()
+                        
+            if format == "hex" {
+                resolve(["content": try Data(contentsOf: fileUrl).hexEncodedString(), "timestamp": timestamp])
+            } else {
+                resolve(["content": try String(contentsOf: fileUrl, encoding: .utf8), "timestamp": timestamp])
+            }
+        } catch {
+            return handleReject(reject, .read_fail, error, "Failed to read \(format) content from file \(fileUrl.path)")
+        }
     }
 }
 

@@ -11,10 +11,7 @@ export var EEventTypes;
     EEventTypes["register_tx"] = "register_tx";
     EEventTypes["register_output"] = "register_output";
     EEventTypes["broadcast_transaction"] = "broadcast_transaction";
-    EEventTypes["persist_manager"] = "persist_manager";
-    EEventTypes["persist_new_channel"] = "persist_new_channel";
-    EEventTypes["persist_graph"] = "persist_graph";
-    EEventTypes["update_persisted_channel"] = "update_persisted_channel";
+    EEventTypes["backup"] = "backup";
     EEventTypes["channel_manager_funding_generation_ready"] = "channel_manager_funding_generation_ready";
     EEventTypes["channel_manager_payment_received"] = "channel_manager_payment_received";
     EEventTypes["channel_manager_payment_sent"] = "channel_manager_payment_sent";
@@ -27,6 +24,7 @@ export var EEventTypes;
     EEventTypes["channel_manager_channel_closed"] = "channel_manager_channel_closed";
     EEventTypes["channel_manager_discard_funding"] = "channel_manager_discard_funding";
     EEventTypes["channel_manager_payment_claimed"] = "channel_manager_payment_claimed";
+    EEventTypes["emergency_force_close_channel"] = "emergency_force_close_channel";
 })(EEventTypes || (EEventTypes = {}));
 export var ELdkLogLevels;
 (function (ELdkLogLevels) {
@@ -40,24 +38,37 @@ export const DefaultTransactionDataShape = {
     header: '',
     height: 0,
     transaction: '',
+    vout: [],
 };
-export var ELdkStorage;
-(function (ELdkStorage) {
-    ELdkStorage["key"] = "LDKStorage";
-})(ELdkStorage || (ELdkStorage = {}));
+export var ELdkFiles;
+(function (ELdkFiles) {
+    ELdkFiles["seed"] = "seed";
+    ELdkFiles["channel_manager"] = "channel_manager.bin";
+    ELdkFiles["channels"] = "channels";
+    ELdkFiles["peers"] = "peers.json";
+    ELdkFiles["watch_transactions"] = "watch_transactions.json";
+    ELdkFiles["watch_outputs"] = "watch_outputs.json";
+    ELdkFiles["confirmed_transactions"] = "confirmed_transactions.json";
+    ELdkFiles["confirmed_outputs"] = "confirmed_outputs.json";
+    ELdkFiles["broadcasted_transactions"] = "broadcasted_transactions.json";
+})(ELdkFiles || (ELdkFiles = {}));
 export var ELdkData;
 (function (ELdkData) {
-    ELdkData["channelManager"] = "channelManager";
-    ELdkData["channelData"] = "channelData";
+    ELdkData["channel_manager"] = "channel_manager";
+    ELdkData["channel_monitors"] = "channel_monitors";
     ELdkData["peers"] = "peers";
-    ELdkData["networkGraph"] = "networkGraph";
+    ELdkData["confirmed_transactions"] = "confirmed_transactions";
+    ELdkData["confirmed_outputs"] = "confirmed_outputs";
+    ELdkData["broadcasted_transactions"] = "broadcasted_transactions";
     ELdkData["timestamp"] = "timestamp";
 })(ELdkData || (ELdkData = {}));
 export const DefaultLdkDataShape = {
-    [ELdkData.channelManager]: '',
-    [ELdkData.channelData]: {},
+    [ELdkData.channel_manager]: '',
+    [ELdkData.channel_monitors]: {},
     [ELdkData.peers]: [],
-    [ELdkData.networkGraph]: '',
+    [ELdkData.confirmed_transactions]: [],
+    [ELdkData.confirmed_outputs]: [],
+    [ELdkData.broadcasted_transactions]: [],
     [ELdkData.timestamp]: 0,
 };
 //# sourceMappingURL=types.js.map
