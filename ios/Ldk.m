@@ -108,6 +108,19 @@ RCT_EXTERN_METHOD(claimFunds:(NSString *)paymentPreimage
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 
+//MARK: Misc methods
+RCT_EXTERN_METHOD(writeToFile:(NSString *)fileName
+                  path:(NSString *)path
+                  content:(NSString *)content
+                  format:(NSString *)format
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(readFromFile:(NSString *)fileName
+                  path:(NSString *)path
+                  format:(NSString *)format
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+
 //MARK: Channels methods
 RCT_EXTERN_METHOD(openChannelStep1:(NSString *)pubkey
                   channelValue:(NSInteger *)channelValue

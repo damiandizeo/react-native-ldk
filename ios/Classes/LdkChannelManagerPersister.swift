@@ -116,7 +116,6 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
                 body: [
                     "payment_id": Data(paymentPathFailed.getPayment_id()).hexEncodedString(),
                     "payment_hash": Data(paymentPathFailed.getPayment_hash()).hexEncodedString(),
-                    "rejected_by_dest": paymentPathFailed.getRejected_by_dest(),
                     "short_channel_id": paymentPathFailed.getShort_channel_id(),
                     "path": paymentPathFailed.getPath().map { $0.asJson },
                     "network_update": paymentPathFailed.getNetwork_update().getValue().debugDescription //TODO could be more detailed
@@ -250,7 +249,7 @@ class LdkChannelManagerPersister: Persister, ExtendedChannelManagerPersister {
         }
     }
     
-    override func persist_scorer(scorer: MultiThreadedLockableScore) -> Result_NoneErrorZ {
+    override func persist_scorer(scorer: Bindings.WriteableScore) -> Bindings.Result_NoneErrorZ {
         //TODO
         print("TODO Swift persist scorer")
         return Result_NoneErrorZ.ok()

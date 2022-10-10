@@ -23,7 +23,7 @@ class LdkFilter: Filter {
         )
     }
     
-    override func register_output(output: WatchedOutput) -> Option_C2Tuple_usizeTransactionZZ {
+    override func register_output(output: Bindings.WatchedOutput) {
         LdkEventEmitter.shared.send(
             withEvent: .register_output,
             body: [
@@ -32,7 +32,5 @@ class LdkFilter: Filter {
                 "script_pubkey": Data(output.get_script_pubkey()).hexEncodedString(),
             ]
         )
-        
-        return Option_C2Tuple_usizeTransactionZZ.none()
     }
 }
