@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0C598C0128C92BF9001DB24E /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C598C0028C92BF5001DB24E /* Helpers.swift */; };
-		962C8075282A8ADF0070AF84 /* LDKFramework.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 962C8074282A8ADF0070AF84 /* LDKFramework.xcframework */; };
+		0C61ECF428F4BCB300A49006 /* LightningDevKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C61ECF328F4BAA400A49006 /* LightningDevKit.xcframework */; };
 		F4FF95D7245B92E800C19C63 /* Ldk.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FF95D6245B92E800C19C63 /* Ldk.swift */; };
 /* End PBXBuildFile section */
 
@@ -26,8 +26,8 @@
 
 /* Begin PBXFileReference section */
 		0C598C0028C92BF5001DB24E /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
+		0C61ECF328F4BAA400A49006 /* LightningDevKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = LightningDevKit.xcframework; sourceTree = "<group>"; };
 		134814201AA4EA6300B7C361 /* libLdk.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libLdk.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		962C8074282A8ADF0070AF84 /* LDKFramework.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = LDKFramework.xcframework; sourceTree = "<group>"; };
 		962C808D282BAF9F0070AF84 /* Classes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Classes; sourceTree = "<group>"; };
 		B3E7B5891CC2AC0600A0062D /* Ldk.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Ldk.m; sourceTree = "<group>"; };
 		F4FF95D5245B92E700C19C63 /* Ldk-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Ldk-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -39,7 +39,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				962C8075282A8ADF0070AF84 /* LDKFramework.xcframework in Frameworks */,
+				0C61ECF428F4BCB300A49006 /* LightningDevKit.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -57,7 +57,7 @@
 		58B511D21A9E6C8500147676 = {
 			isa = PBXGroup;
 			children = (
-				962C8074282A8ADF0070AF84 /* LDKFramework.xcframework */,
+				0C61ECF328F4BAA400A49006 /* LightningDevKit.xcframework */,
 				0C598C0028C92BF5001DB24E /* Helpers.swift */,
 				F4FF95D6245B92E800C19C63 /* Ldk.swift */,
 				B3E7B5891CC2AC0600A0062D /* Ldk.m */,
